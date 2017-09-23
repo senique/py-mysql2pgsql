@@ -192,7 +192,7 @@ class PostgresWriter(object):
                 else:
                     row[index] = row[index].isoformat()
             elif isinstance(row[index], timedelta):
-                row[index] = datetime.utcfromtimestamp(row[index].total_seconds()).time().isoformat()
+                row[index] = datetime.utcfromtimestamp(_get_total_seconds(row[index])).time().isoformat()
             else:
                 row[index] = AsIs(row[index]).getquoted()
 
@@ -315,3 +315,11 @@ class PostgresWriter(object):
 
     def write_contents(self, table, reader):
         raise NotImplementedError
+
+# Original fix for Py2.6: https://github.com/mozilla/mozdownload/issues/73
+def _get_total_seconds(dt):
+    # Keep backward compatibility with Python 2.6 which doesn't have this method
+    if hasattr(datetime, 'total_seconds'):
+        return dt.total_seconds()
+    else:
+        return (dt.microseconds + (dt.seconds + dt.days * 24 * 3600) * 10**6) / 10**6
