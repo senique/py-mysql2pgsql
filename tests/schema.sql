@@ -147,16 +147,20 @@ CREATE TABLE `type_conversion_test_1` (
   `type_decimal_8` decimal(5,2) NOT NULL,
 -- DATE
   `type_date_1` date NOT NULL DEFAULT '2011-08-01',
-  `type_date_2` date NOT NULL DEFAULT '0000-00-00',
+  `type_date_2` date NOT NULL DEFAULT '0000-01-01',
+  -- `type_date_2` date NOT NULL DEFAULT '0000-00-00', -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_date_2'
   `type_date_3` date DEFAULT '2011-08-02',
-  `type_date_4` date DEFAULT '0000-00-00',
+  `type_date_4` date DEFAULT '0000-01-01',
+  -- `type_date_4` date DEFAULT '0000-00-00', -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_date_4'
   `type_date_5` date DEFAULT NULL,
   `type_date_6` date NOT NULL,
 -- DATETIME
   `type_datetime_1` datetime NOT NULL DEFAULT '2011-08-03 12:00:00',
-  `type_datetime_2` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `type_datetime_2` datetime NOT NULL DEFAULT '0000-01-01 00:00:00',
+  -- `type_datetime_2` datetime NOT NULL DEFAULT '0000-00-00 00:00:00', -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_datetime_2'
   `type_datetime_3` datetime DEFAULT '2011-08-04 12:00:00',
-  `type_datetime_4` datetime DEFAULT '0000-00-00 00:00:00',
+  `type_datetime_4` datetime DEFAULT '0000-01-01 00:00:00',
+  -- `type_datetime_4` datetime DEFAULT '0000-00-00 00:00:00', -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_datetime_4'
   `type_datetime_5` datetime DEFAULT NULL,
   `type_datetime_6` datetime NOT NULL,
 -- TIME
@@ -168,11 +172,14 @@ CREATE TABLE `type_conversion_test_1` (
   `type_time_6` time NOT NULL,
 -- TIMESTAMP
   `type_timestamp_1` timestamp NOT NULL DEFAULT '2011-08-05 12:00:00',
-  `type_timestamp_2` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `type_timestamp_2` timestamp NOT NULL DEFAULT '1978-01-01 00:00:00',
+  -- `type_timestamp_2` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00', -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_timestamp_2'
   `type_timestamp_3` timestamp DEFAULT '2011-08-06 12:00:00',
-  `type_timestamp_4` timestamp DEFAULT '0000-00-00 00:00:00',
+  `type_timestamp_4` timestamp DEFAULT '1978-01-01 00:00:00',
+  -- `type_timestamp_4` timestamp DEFAULT '0000-00-00 00:00:00', -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_timestamp_4'
   `type_timestamp_5` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `type_timestamp_6` timestamp NOT NULL,
+  `type_timestamp_6` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- `type_timestamp_6` timestamp NOT NULL, -- ERROR 1067 (42000) at line 9: Invalid default value for 'type_timestamp_6'
 -- YEAR
   `type_year_1` year(4) NOT NULL DEFAULT '0000',
   `type_year_2` year(4) NOT NULL DEFAULT '2011',
@@ -727,3 +734,10 @@ ADD UNIQUE INDEX `uniq_1_col` (`type_varchar_4` ASC)
 , ADD UNIQUE INDEX `uniq_2_col` (`type_char_1` ASC, `type_char_4` ASC) 
 , ADD INDEX `idx_1_col` (`type_char_2` ASC) 
 , ADD INDEX `idx_2_col` (`type_varchar_1` ASC, `type_varchar_2` ASC) ;
+
+DROP TABLE IF EXISTS `names-with-dash`;
+
+CREATE TABLE `names-with-dash` (
+	`some-id` int(11) NOT NULL AUTO_INCREMENT,
+	PRIMARY KEY (`some-id`) )
+ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
