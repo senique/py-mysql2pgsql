@@ -102,8 +102,6 @@ class PostgresDbWriter(PostgresWriter):
             return cur.fetchone() if one else cur
 
     def execute(self, sql, args=(), many=False):
-        if len(sql) == 0:
-            return
         with closing(self.conn.cursor()) as cur:
             if many:
                 cur.executemany(sql, args)

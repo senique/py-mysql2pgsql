@@ -136,21 +136,13 @@ class PostgresWriter(object):
         return '%s%s%s' % (column_type, (default if not default == None else ''), null)
 
     def table_comments(self, table):
-        comments = StringIO()
+        comments = []
         if table.comment:
-            comments.write(self.table_comment(table.name, table.comment))
+            comments.append('COMMENT ON TABLE %s is %s;' % (table.name, QuotedString(table.comment).getquoted()))
         for column in table.columns:
-            comments.write(self.column_comment(table.name, column))
-        return comments.getvalue()
-
-    def column_comment(self, tablename, column):
-        if column['comment']:
-            return (' COMMENT ON COLUMN %s.%s is %s;' % (tablename, column['name'], QuotedString(column['comment']).getquoted()))
-        else:
-            return ''
-
-    def table_comment(self, tablename, comment):
-        return (' COMMENT ON TABLE %s is %s;' % (tablename, QuotedString(comment).getquoted()))
+            if column['comment']:
+                comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], QuotedString(column['comment']).getquoted()))
+        return comments
 
     def process_row(self, table, row):
         """Examines row data from MySQL and alters
@@ -244,7 +236,7 @@ class PostgresWriter(object):
 
         table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
         table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
-        table_sql.append(self.table_comments(table))
+        table_sql.extend(self.table_comments(table))
         return (table_sql, serial_key_sql)
 
     def write_indexes(self, table):
