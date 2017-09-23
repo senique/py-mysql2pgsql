@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import re
 from cStringIO import StringIO
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 
-from psycopg2.extensions import QuotedString, Binary, AsIs
+from psycopg2.extensions import AsIs, Binary, QuotedString
 from pytz import timezone
 
 
@@ -12,6 +12,7 @@ class PostgresWriter(object):
     """Base class for :py:class:`mysql2pgsql.lib.postgres_file_writer.PostgresFileWriter`
     and :py:class:`mysql2pgsql.lib.postgres_db_writer.PostgresDbWriter`.
     """
+
     def __init__(self, tz=False, index_prefix=''):
         self.column_types = {}
         self.index_prefix = index_prefix
@@ -73,7 +74,7 @@ class PostgresWriter(object):
             elif column['type'] == 'double precision':
                 default = (" DEFAULT %s" % (column['default'] if t(column['default']) else 'NULL')) if t(default) else None
                 return default, 'double precision'
-            elif column['type'] == 'datetime':
+            elif column['type'] == 'datetime' or column['type'].startswith('datetime('):
                 default = None
                 if self.tz:
                     return default, 'timestamp with time zone'
@@ -87,7 +88,7 @@ class PostgresWriter(object):
                     default = None
                 elif "CURRENT_TIMESTAMP" in column['default']:
                     default = ' DEFAULT CURRENT_TIMESTAMP'
-                elif "0000-00-00 00:00" in  column['default']:
+                elif "0000-00-00 00:00" in column['default']:
                     if self.tz:
                         default = " DEFAULT '1970-01-01T00:00:00.000000%s'" % self.tz_offset
                     elif "0000-00-00 00:00:00" in column['default']:
@@ -98,7 +99,7 @@ class PostgresWriter(object):
                     return default, 'timestamp with time zone'
                 else:
                     return default, 'timestamp without time zone'
-            elif column['type'] == 'time':
+            elif column['type'] == 'time' or column['type'].startswith('time('):
                 default = " DEFAULT NOW()" if t(default) else None
                 if self.tz:
                     return default, 'time with time zone'
@@ -120,7 +121,8 @@ class PostgresWriter(object):
                 return ' DEFAULT %s' % column['default'].upper() if column['default'] else column['default'], 'varbit(%s)' % re.search(r'\((\d+)\)', column['type']).group(1)
             elif column['type'].startswith('set('):
                 if default:
-                    default = ' DEFAULT ARRAY[%s]::text[]' % ','.join(QuotedString(v).getquoted() for v in re.search(r"'(.*)'", default).group(1).split(','))
+                    default = ' DEFAULT ARRAY[%s]::text[]' % ','.join(QuotedString(
+                        v).getquoted() for v in re.search(r"'(.*)'", default).group(1).split(','))
                 return default, 'text[]'
             else:
                 raise Exception('unknown %s' % column['type'])
@@ -130,25 +132,25 @@ class PostgresWriter(object):
         if column.get('auto_increment', None):
             return '%s DEFAULT nextval(\'"%s_%s_seq"\'::regclass) NOT NULL' % (
                    column_type, column['table_name'], column['name'])
-                    
+
         return '%s%s%s' % (column_type, (default if not default == None else ''), null)
 
     def table_comments(self, table):
         comments = StringIO()
-        if table.comment: 
-          comments.write(self.table_comment(table.name, table.comment))
+        if table.comment:
+            comments.write(self.table_comment(table.name, table.comment))
         for column in table.columns:
-          comments.write(self.column_comment(table.name, column))
-        return comments.getvalue() 
+            comments.write(self.column_comment(table.name, column))
+        return comments.getvalue()
 
     def column_comment(self, tablename, column):
-      if column['comment']: 
-        return (' COMMENT ON COLUMN %s.%s is %s;' % ( tablename, column['name'], QuotedString(column['comment']).getquoted()))
-      else: 
-        return ''
+        if column['comment']:
+            return (' COMMENT ON COLUMN %s.%s is %s;' % (tablename, column['name'], QuotedString(column['comment']).getquoted()))
+        else:
+            return ''
 
     def table_comment(self, tablename, comment):
-        return (' COMMENT ON TABLE %s is %s;' % ( tablename, QuotedString(comment).getquoted()))
+        return (' COMMENT ON TABLE %s is %s;' % (tablename, QuotedString(comment).getquoted()))
 
     def process_row(self, table, row):
         """Examines row data from MySQL and alters
@@ -173,12 +175,13 @@ class PostgresWriter(object):
                 elif 'text[' in column_type:
                     row[index] = '{%s}' % ','.join('"%s"' % v.replace('"', r'\"') for v in row[index].split(','))
                 else:
-                    row[index] = row[index].replace('\\', r'\\').replace('\n', r'\n').replace('\t', r'\t').replace('\r', r'\r').replace('\0', '')
+                    row[index] = row[index].replace('\\', r'\\').replace('\n', r'\n').replace(
+                        '\t', r'\t').replace('\r', r'\r').replace('\0', '')
             elif column_type == 'boolean':
                 # We got here because you used a tinyint(1), if you didn't want a bool, don't use that type
                 row[index] = 't' if row[index] not in (None, 0) else 'f' if row[index] == 0 else row[index]
-            elif  isinstance(row[index], (date, datetime)):
-                if  isinstance(row[index], datetime) and self.tz:
+            elif isinstance(row[index], (date, datetime)):
+                if isinstance(row[index], datetime) and self.tz:
                     try:
                         if row[index].tzinfo:
                             row[index] = row[index].astimezone(self.tz).isoformat()
@@ -241,7 +244,7 @@ class PostgresWriter(object):
 
         table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
         table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
-        table_sql.append( self.table_comments(table))
+        table_sql.append(self.table_comments(table))
         return (table_sql, serial_key_sql)
 
     def write_indexes(self, table):
@@ -250,11 +253,11 @@ class PostgresWriter(object):
         index_prefix = self.index_prefix
         if primary_index:
             index_sql.append('ALTER TABLE "%(table_name)s" ADD CONSTRAINT "%(index_name)s_pkey" PRIMARY KEY(%(column_names)s);' % {
-                    'table_name': table.name,
-                    'index_name': '%s%s_%s' % (index_prefix, table.name, 
-                                        '_'.join(primary_index[0]['columns'])),
-                    'column_names': ', '.join('"%s"' % col for col in primary_index[0]['columns']),
-                    })
+                'table_name': table.name,
+                'index_name': '%s%s_%s' % (index_prefix, table.name,
+                                           '_'.join(primary_index[0]['columns'])),
+                'column_names': ', '.join('"%s"' % col for col in primary_index[0]['columns']),
+            })
         for index in table.indexes:
             if 'primary' in index:
                 continue
@@ -262,11 +265,11 @@ class PostgresWriter(object):
             index_name = '%s%s_%s' % (index_prefix, table.name, '_'.join(index['columns']))
             index_sql.append('DROP INDEX IF EXISTS "%s" CASCADE;' % index_name)
             index_sql.append('CREATE %(unique)sINDEX "%(index_name)s" ON "%(table_name)s" (%(column_names)s);' % {
-                    'unique': unique,
-                    'index_name': index_name,
-                    'table_name': table.name,
-                    'column_names': ', '.join('"%s"' % col for col in index['columns']),
-                    })
+                'unique': unique,
+                'index_name': index_name,
+                'table_name': table.name,
+                'column_names': ', '.join('"%s"' % col for col in index['columns']),
+            })
 
         return index_sql
 
