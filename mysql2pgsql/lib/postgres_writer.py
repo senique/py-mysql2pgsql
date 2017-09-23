@@ -13,9 +13,9 @@ class PostgresWriter(object):
     and :py:class:`mysql2pgsql.lib.postgres_db_writer.PostgresDbWriter`.
     """
 
-    def __init__(self, tz=False, index_prefix=''):
+    def __init__(self, index_prefix, tz=False):
         self.column_types = {}
-        self.index_prefix = index_prefix
+        self.index_prefix = index_prefix if index_prefix else ''
         if tz:
             self.tz = timezone('UTC')
             self.tz_offset = '+00:00'
