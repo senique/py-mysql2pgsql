@@ -735,9 +735,10 @@ ADD UNIQUE INDEX `uniq_1_col` (`type_varchar_4` ASC)
 , ADD INDEX `idx_1_col` (`type_char_2` ASC) 
 , ADD INDEX `idx_2_col` (`type_varchar_1` ASC, `type_varchar_2` ASC) ;
 
-DROP TABLE IF EXISTS `names-with-dash`;
+DROP TABLE IF EXISTS `difficult-names`;
 
-CREATE TABLE `names-with-dash` (
-	`some-id` int(11) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `difficult-names` (
+	`some-id` INT(11) NOT NULL AUTO_INCREMENT, -- dash
+	`user` VARCHAR(45) NOT NULL, -- reserved in PostgreSQL
 	PRIMARY KEY (`some-id`) )
 ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
