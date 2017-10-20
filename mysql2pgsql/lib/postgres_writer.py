@@ -86,6 +86,8 @@ class PostgresWriter(object):
             elif column['type'] == 'timestamp':
                 if column['default'] == None:
                     default = None
+                elif "current_timestamp()" in column['default']:
+                    default = ' DEFAULT CURRENT_TIMESTAMP'
                 elif "CURRENT_TIMESTAMP" in column['default']:
                     default = ' DEFAULT CURRENT_TIMESTAMP'
                 elif "0000-00-00 00:00" in column['default']:
