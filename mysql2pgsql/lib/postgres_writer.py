@@ -137,13 +137,18 @@ class PostgresWriter(object):
 
         return '%s%s%s' % (column_type, (default if not default == None else ''), null)
 
+    """QuotedString API: http://initd.org/psycopg/docs/extensions.html?highlight=quotedstring#psycopg2.extensions.QuotedString
+       ERROR: 
+           UnicodeEncodeError: 'latin-1' codec can't encode characters in position 18-19: ordinal not in range(256)
+           UnicodeDecodeError: 'ascii' codec can't decode byte 0xe5 in position 16: ordinal not in range(128)
+    """
     def table_comments(self, table):
         comments = []
         if table.comment:
-            comments.append('COMMENT ON TABLE %s is %s;' % (table.name, QuotedString(table.comment).getquoted()))
+            comments.append('COMMENT ON TABLE %s is %s;' % (table.name, "'"+table.comment+"'"))
         for column in table.columns:
             if column['comment']:
-                comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], QuotedString(column['comment']).getquoted()))
+                comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], "'"+column['comment'].decode('utf8')+"'"))
         return comments
 
     def process_row(self, table, row):
