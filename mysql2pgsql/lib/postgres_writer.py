@@ -13,8 +13,13 @@ class PostgresWriter(object):
     and :py:class:`mysql2pgsql.lib.postgres_db_writer.PostgresDbWriter`.
     """
 
-    def __init__(self, index_prefix, tz=False):
+    def __init__(self, file_options, tz=False):
         self.column_types = {}
+
+        is_gpdb = file_options.get("is_gpdb")
+        index_prefix = file_options.get("index_prefix")
+        self.log_detail = '\n LOG DETAIL:\n'
+        self.is_gpdb = is_gpdb
         self.index_prefix = index_prefix if index_prefix else ''
         if tz:
             self.tz = timezone('UTC')
@@ -131,7 +136,8 @@ class PostgresWriter(object):
 
         default, column_type = get_type(column)
 
-        if column.get('auto_increment', None):
+        """Refactor for GPDB."""
+        if not self.is_gpdb and column.get('auto_increment', None):
             return '%s DEFAULT nextval(\'"%s_%s_seq"\'::regclass) NOT NULL' % (
                    column_type, column['table_name'], column['name'])
 
@@ -230,6 +236,7 @@ class PostgresWriter(object):
 
         return (truncate_sql, serial_key_sql)
 
+    """Exclude PRIMARY KEY, create with write_indexes"""
     def write_table(self, table):
         primary_keys, serial_key, maxval, columns = self.table_attributes(table)
         serial_key_sql = []
@@ -257,6 +264,26 @@ class PostgresWriter(object):
                                            '_'.join(primary_index[0]['columns'])),
                 'column_names': ', '.join('"%s"' % col for col in primary_index[0]['columns']),
             })
+            self.process_log('    create index: '+table.name+'|'+','.join(primary_index[0]['columns'])+'|PRIMARY')
+
+        if self.is_gpdb:
+            for index in table.indexes:
+                if 'primary' in index:
+                    continue
+                unique = 'UNIQUE ' if index.get('unique', None) else ''
+                self.process_log('    ignore index: '+table.name+'|'+','.join(index['columns'])+ ('|UNIQUE' if unique else ''))
+            return index_sql
+
+        '''For Greenplum Database(base on PSQL):
+               psycopg2.ProgrammingError: UNIQUE index must contain all columns in the distribution key
+           Detail refer to:
+               https://stackoverflow.com/questions/40987460/how-should-i-deal-with-my-unique-constraints-during-my-data-migration-from-postg
+               
+               http://gpdb.docs.pivotal.io/4320/ref_guide/sql_commands/CREATE_INDEX.html
+               EXCERPT: In Greenplum Database, unique indexes are allowed only if the columns of the index key are the same as (or a superset of) 
+                     the Greenplum distribution key. On partitioned tables, a unique index is only supported within an individual partition 
+                     - not across all partitions.
+        '''
         for index in table.indexes:
             if 'primary' in index:
                 continue
@@ -269,11 +296,18 @@ class PostgresWriter(object):
                 'table_name': table.name,
                 'column_names': ', '.join('"%s"' % col for col in index['columns']),
             })
+            self.process_log('    create index: '+table.name+'|'+','.join(index['columns'])+ ('|UNIQUE' if unique else ''))
 
         return index_sql
 
     def write_constraints(self, table):
         constraint_sql = []
+
+        if self.is_gpdb:
+            for  key in table.foreign_keys:
+                self.process_log('    ignore constraints: '+table.name+'|'+key['column']+'| ref:'+key['ref_table']+'.'+key['ref_column'])
+            return constraint_sql
+
         for key in table.foreign_keys:
             constraint_sql.append("""ALTER TABLE "%(table_name)s" ADD FOREIGN KEY ("%(column_name)s")
             REFERENCES "%(ref_table_name)s"(%(ref_column_name)s);""" % {
@@ -281,10 +315,17 @@ class PostgresWriter(object):
                 'column_name': key['column'],
                 'ref_table_name': key['ref_table'],
                 'ref_column_name': key['ref_column']})
+            self.process_log('    create constraints: '+table.name+'|'+key['column']+'| ref:'+key['ref_table']+'.'+key['ref_column'])
         return constraint_sql
 
     def write_triggers(self, table):
         trigger_sql = []
+
+        if self.is_gpdb:
+            for key in table.triggers:
+                self.process_log('    ignore triggers: '+table.name+'|'+key['name']+'|'+key['event']+'|'+key['timing'])
+            return trigger_sql
+
         for key in table.triggers:
             trigger_sql.append("""CREATE OR REPLACE FUNCTION %(fn_trigger_name)s RETURNS TRIGGER AS $%(trigger_name)s$
             BEGIN
@@ -306,8 +347,13 @@ class PostgresWriter(object):
                 'trigger_time': key['timing'],
                 'trigger_event': key['event'],
                 'trigger_name': key['name']})
+            self.process_log('    create triggers: '+table.name+'|'+key['name']+'|'+key['event']+'|'+key['timing'])
 
         return trigger_sql
+
+    def process_log(self, log):
+        print(log)
+        self.log_detail += log+'\n'
 
     def close(self):
         raise NotImplementedError

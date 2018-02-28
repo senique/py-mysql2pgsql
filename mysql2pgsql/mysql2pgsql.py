@@ -26,15 +26,16 @@ class Mysql2Pgsql(object):
         if self.file_options['destination']['file']:
             writer = PostgresFileWriter(self._get_file(self.file_options['destination']['file']), 
                                         self.run_options.verbose, 
-                                        index_prefix=self.file_options.get("index_prefix"),
+                                        self.file_options,
                                         tz=self.file_options.get('timezone'))
         else:
             writer = PostgresDbWriter(self.file_options['destination']['postgres'], 
                                       self.run_options.verbose, 
-                                      index_prefix=self.file_options.get("index_prefix"),
+                                      self.file_options,
                                       tz=self.file_options.get('timezone'))
 
         Converter(reader, writer, self.file_options, self.run_options.verbose).convert()
+        print(writer.log_detail)
 
     def _get_file(self, file_path):
         return codecs.open(file_path, 'wb', 'utf-8')
