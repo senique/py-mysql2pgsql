@@ -85,9 +85,14 @@ class MysqlReader(object):
             self._foreign_keys = []
             self._triggers = []
             self._columns = self._load_columns()
-            self._comment = self._load_table_comment()
+            self._comment = ''
             self._load_indexes()
             self._load_triggers()
+            self._rows = 0
+
+            table_status = self._load_table_status()
+            self._comment = table_status[17]
+            self._rows = table_status[4]
 
         def _convert_type(self, data_type):
             """Normalize MySQL `data_type`"""
@@ -157,11 +162,8 @@ class MysqlReader(object):
 
             return fields
 
-        def _load_table_comment(self):
-            table_status = self.reader.db.query('SHOW TABLE STATUS WHERE Name="%s"' % self.name, one=True)
-            comment = table_status[17]
-            return comment
-
+        def _load_table_status(self):
+            return self.reader.db.query('SHOW TABLE STATUS WHERE Name="%s"' % self.name, one=True)
           
         def _load_indexes(self):
             explain = self.reader.db.query('SHOW CREATE TABLE `%s`' % self.name, one=True)
@@ -215,6 +217,10 @@ class MysqlReader(object):
         @property
         def columns(self):
             return self._columns
+
+        @property
+        def rows(self):
+            return self._rows
 
         @property
         def comment(self):

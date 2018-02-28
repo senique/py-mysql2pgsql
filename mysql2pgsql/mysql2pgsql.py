@@ -37,5 +37,14 @@ class Mysql2Pgsql(object):
         Converter(reader, writer, self.file_options, self.run_options.verbose).convert()
         print(writer.log_detail)
 
+        """"Print data satistics info:"""
+        satistics_rows_info = ""
+        total_rows = 0
+        for table in reader.tables:
+            total_rows += table.rows
+            satistics_rows_info += '    '+table.name+":%s\n"%(table.rows)
+        satistics_rows_info = "Print data satistics info:\n"+self.file_options['mysql'].get('database')+":%s|TOTAL\n"%(total_rows)+satistics_rows_info
+        print(satistics_rows_info)
+
     def _get_file(self, file_path):
         return codecs.open(file_path, 'wb', 'utf-8')
