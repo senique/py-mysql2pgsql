@@ -3,6 +3,8 @@
 # and forces it to use a local socket connection
 # if tcp is chosen, you can use compression
 # if use a schema, use colon like this 'mydatabase:schema', else will import to schema 'public'
+# if sameschame is true, the 'schema' of 'mydatabase:schema' will use mysql.database
+# if getdbinfo is true, only get mysql database satistics info, not convert anything
 
 mysql:
  hostname: localhost
@@ -10,8 +12,9 @@ mysql:
  socket: /tmp/mysql.sock
  username: user
  password: 
- database: test_db
+ database: test_db2,test_db
  compress: false
+ getdbinfo: false
 destination:
  # if file is given, output goes to file, else postgres
  file:
@@ -21,6 +24,7 @@ destination:
   username: gpadmin
   password: pivotal
   database: mydb:test_new
+  sameschame: true
 
 # if only_tables is given, only the listed tables will be converted.  leave empty to convert all tables.
 #only_tables:
@@ -44,8 +48,8 @@ force_truncate: false
 timezone: false
 
 # if index_prefix is given, indexes will be created whith a name prefixed with index_prefix
-index_prefix: testr
+index_prefix: 
 
 # For Greenplum Database(base on PSQL) , advise this true
 # if is_gpdb is true, ignore INDEXES(not PRIMARY KEY INDEXE), CONSTRAINTS, AND TRIGGERS
-is_gpdb: false
+is_gpdb: true

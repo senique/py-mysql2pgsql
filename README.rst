@@ -106,6 +106,8 @@ to edit. For the impatient, here is what the file contains.
     # and forces it to use a local socket connection
     # if tcp is chosen, you can use compression
     # if use a schema, use colon like this 'mydatabase:schema', else will import to schema 'public'
+    # if sameschame is true, the 'schema' of 'mydatabase:schema' will use mysql.database
+    # if getdbinfo is true, only get mysql database satistics info, not convert anything
 
     mysql:
      hostname: localhost
@@ -115,6 +117,7 @@ to edit. For the impatient, here is what the file contains.
      password: 
      database: mysql2psql_test
      compress: false
+     getdbinfo: false
     destination:
      # if file is given, output goes to file, else postgres
      file: 
@@ -124,6 +127,7 @@ to edit. For the impatient, here is what the file contains.
       username: mysql2psql
       password: 
       database: mysql2psql_test
+      sameschame: true
 
     # if only_tables is given, only the listed tables will be converted.  leave empty to convert all tables.
     #only_tables:

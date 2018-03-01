@@ -12,6 +12,10 @@
 
 2. 增加配置参数is_gpdb，设置对GPDB的特殊处理忽略（INDEXES(not PRIMARY KEY INDEXE), CONSTRAINTS, AND TRIGGERS）；
 
+3. 增加配置参数destination.postgres.sameschame，设置导入GPDB的schema指定为mysql.database；
+
+4. 增加配置参数mysql.getdbinfo，如果为true，则只读取MySQL的数据库统计信息，不执行数据迁移操作；
+
 .. attention::
    README_CN.rst(本中文说明)非英文原版说明的翻译(详细请参考 `README.rst <https://github.com/philipsoutham/py-mysql2pgsql/blob/master/README.rst>`_)，只是使用简述。_
 
@@ -54,6 +58,8 @@ c .迁移前需要在新库（PostgreSQL）创建冒号指定的模式（schema�
 
 d .其他参数配置：
 
+  - destination.postgres.sameschame: true-导入GPDB的schema指定为mysql.database；
+  - mysql.getdbinfo: true-只读取MySQL的数据库统计信息，不执行数据迁移操作；
   - only_tables: 指定迁移的table（换行缩进列出表名），不指定则迁移全部；
   - exclude_tables:指定排除的table，不指定则不排除；
   - supress_data: true-只迁移模式（包含表结构），默认false；
@@ -71,19 +77,62 @@ d .其他参数配置：
     > cd D:\python\py-mysql2pgsql\bin
     > python py-mysql2pgsql -v -f mysql2pgsql.yml
 
-
-5. 注意：
+5. 打印数据库统计信息说明：
 --------
 
-不支持MySQL空间数据类型（**Spatial Data Types**）；
+::
 
-由于Greenplum Database(base on PSQL)对 **UNIQUE Index** 的特殊处理，迁移unique index可能会报错。介于GPDB特殊性，迁移时建议忽略除主键外的其他约束（主键，约束和触发器）。即 *不创建任何索引的情况下测试下性能，而后再做出正确的决定。* 详情如下：
+    > ########################################
+    > ##TOTAL Database Rows:[迁移的总数据量]##
+    > ########################################
+    > ##Process Time:迁移数据执行时间 s.##
+    > 
+    > DATABASE SATISTICS INFO:
+    > 数据库名(或模式):单个库总数据量|TOTAL
+    >     表名:单个表数据量
+    > 
+    > test_db:8|TOTAL
+    >     test_inc:6
+    >     test_primary_error:2
+    > 
+    > INDEXES, CONSTRAINTS, AND TRIGGERS DETAIL:
+    > 导入数据库名:导入模式名
+    >     操作信息(create/ignore): 表名|字段名(备注信息)
+    > 
+    > mydb:test_db
+    >     create index: test_inc|id|PRIMARY
+    >     create index: test_primary_error|code|PRIMARY
+    >     ignore index: test_primary_error|code
 
-* `Greenplum Database does not allow having both PRIMARY KEY and UNIQUE constraints <https://stackoverflow.com/questions/40987460/how-should-i-deal-with-my-unique-constraints-during-my-data-migration-from-postg>`_
-* `EXCERPT：CREATE_INDEX <http://gpdb.docs.pivotal.io/4320/ref_guide/sql_commands/CREATE_INDEX.html>`_
+6. 注意：
+--------
+
+* 不支持MySQL空间数据类型（**Spatial Data Types**）；
+
+* 由于Greenplum Database(base on PSQL)对 **UNIQUE Index** 的特殊处理，迁移unique index可能会报错。介于GPDB特殊性，迁移时建议忽略除主键外的其他约束（主键，约束和触发器）。即 *不创建任何索引的情况下测试下性能，而后再做出正确的决定。* 详情如下：
+
+  * `Greenplum Database does not allow having both PRIMARY KEY and UNIQUE constraints <https://stackoverflow.com/questions/40987460/how-should-i-deal-with-my-unique-constraints-during-my-data-migration-from-postg>`_
+  * `EXCERPT：CREATE_INDEX <http://gpdb.docs.pivotal.io/4320/ref_guide/sql_commands/CREATE_INDEX.html>`_
 
 ::
 
   In Greenplum Database, unique indexes are allowed only if the columns of the index key are the same as 
   (or a superset of) the Greenplum distribution key. On partitioned tables, a unique index is only supported
   within an individual partition - not across all partitions
+
+* **SHOW TABLE STATUS;** 结果说明：Rows-行数：对于非事务性表（如MyISAM），这个值是精确的；但对于事务性引擎（如InnoDB），这个值通常是估算的，与实际值相差可达40到50％。对于INFORMATION_SCHEMA中的表，Rows值为NULL。所以替换方案是使用 **SELECT COUNT(\*)** 获取准确的数据。详情如下：
+
+  * `why-is-innodbs-show-table-status-so-unreliable <https://stackoverflow.com/questions/8624408/why-is-innodbs-show-table-status-so-unreliable>`_
+  * `EXCERPT：INNODB-RESTRICTIONS <https://dev.mysql.com/doc/refman/5.7/en/innodb-restrictions.html>`_
+
+::
+
+  The official MySQL 5.1 documentation acknowledges that InnoDB does not give accurate statistics with SHOW 
+    TABLE STATUS. Whereas MYISAM tables specifically keep an internal cache of meta-data such as number of rows
+    etc, the InnoDB engine stores both table data and indexes in */var/lib/mysql/ibdata**
+
+  Inconsistent table row numbers are reported by SHOW TABLE STATUS because InnoDB dynamically estimates the 
+    'Rows' value by sampling a range of the table data (in */var/lib/mysql/ibdata**) and then extrapolates the
+    approximate number of rows.So much so that the InnoDB documentation acknowledges row number inaccuracy of 
+    up to 50% when using SHOW TABLE STATUS.
+  So use SELECT COUNT(*) FROM TABLE_NAME.

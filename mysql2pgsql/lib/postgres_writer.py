@@ -18,7 +18,7 @@ class PostgresWriter(object):
 
         is_gpdb = file_options.get("is_gpdb")
         index_prefix = file_options.get("index_prefix")
-        self.log_detail = '\n LOG DETAIL:\n'
+        self.log_detail = '\n'+file_options['destination']['postgres']['database']+'\n'
         self.is_gpdb = is_gpdb
         self.index_prefix = index_prefix if index_prefix else ''
         if tz:

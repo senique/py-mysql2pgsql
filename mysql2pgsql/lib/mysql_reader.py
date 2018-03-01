@@ -92,7 +92,7 @@ class MysqlReader(object):
 
             table_status = self._load_table_status()
             self._comment = table_status[17]
-            self._rows = table_status[4]
+            self._rows = self._load_table_rows()
 
         def _convert_type(self, data_type):
             """Normalize MySQL `data_type`"""
@@ -164,6 +164,20 @@ class MysqlReader(object):
 
         def _load_table_status(self):
             return self.reader.db.query('SHOW TABLE STATUS WHERE Name="%s"' % self.name, one=True)
+
+        """ Refer to: https://stackoverflow.com/questions/8624408/why-is-innodbs-show-table-status-so-unreliable
+        The official MySQL 5.1 documentation acknowledges that InnoDB does not give accurate statistics with SHOW TABLE STATUS. 
+            Whereas MYISAM tables specifically keep an internal cache of meta-data such as number of rows etc, the InnoDB engine
+             stores both table data and indexes in */var/lib/mysql/ibdata**
+
+        Inconsistent table row numbers are reported by SHOW TABLE STATUS because InnoDB dynamically estimates the 'Rows' value 
+            by sampling a range of the table data (in */var/lib/mysql/ibdata**) and then extrapolates the approximate number of rows. 
+            So much so that the InnoDB documentation acknowledges row number inaccuracy of up to 50% when using SHOW TABLE STATUS.
+            So use SELECT COUNT(*) FROM TABLE_NAME.
+        """
+        def _load_table_rows(self):
+            rows = self.reader.db.query('SELECT COUNT(*) FROM `%s`;' % (self.name), one=True)
+            return int(rows[0]) if rows[0] else 0
           
         def _load_indexes(self):
             explain = self.reader.db.query('SHOW CREATE TABLE `%s`' % self.name, one=True)
