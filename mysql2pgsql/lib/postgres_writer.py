@@ -16,10 +16,10 @@ class PostgresWriter(object):
     def __init__(self, file_options, tz=False):
         self.column_types = {}
 
-        is_gpdb = file_options.get("is_gpdb")
         index_prefix = file_options.get("index_prefix")
         self.log_detail = '\n'+file_options['destination']['postgres']['database']+'\n'
-        self.is_gpdb = is_gpdb
+        self.destination_file = file_options['destination']['file']
+        self.is_gpdb = file_options.get("is_gpdb")
         self.index_prefix = index_prefix if index_prefix else ''
         if tz:
             self.tz = timezone('UTC')
@@ -241,6 +241,7 @@ class PostgresWriter(object):
         primary_keys, serial_key, maxval, columns = self.table_attributes(table)
         serial_key_sql = []
         table_sql = []
+        table_comment_sql = []
         if serial_key:
             serial_key_seq = '%s_%s_seq' % (table.name, serial_key)
             serial_key_sql.append('DROP SEQUENCE IF EXISTS "%s" CASCADE;' % serial_key_seq)
@@ -250,8 +251,10 @@ class PostgresWriter(object):
 
         table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
         table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
-        table_sql.extend(self.table_comments(table))
-        return (table_sql, serial_key_sql)
+        if self.destination_file:
+            table_sql.extend(self.table_comments(table))
+        table_comment_sql.extend(self.table_comments(table))
+        return (table_sql, serial_key_sql, table_comment_sql)
 
     def write_indexes(self, table):
         index_sql = []

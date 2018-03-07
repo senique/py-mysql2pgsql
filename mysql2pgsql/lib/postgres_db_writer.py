@@ -70,6 +70,7 @@ class PostgresDbWriter(PostgresWriter):
 
     def __init__(self, db_options, verbose=False, *args, **kwargs):
         super(PostgresDbWriter, self).__init__(*args, **kwargs)
+        self.execute_error_log = ''
         self.verbose = verbose
         self.db_options = {
             'host': str(db_options['hostname']),
@@ -103,11 +104,15 @@ class PostgresDbWriter(PostgresWriter):
 
     def execute(self, sql, args=(), many=False):
         with closing(self.conn.cursor()) as cur:
-            if many:
-                cur.executemany(sql, args)
-            else:
-                cur.execute(sql, args)
-            self.conn.commit()
+            try:
+                if many:
+                    cur.executemany(sql, args)
+                else:
+                    cur.execute(sql, args)
+            except Exception as e:
+                self.execute_error_log += str(e)
+            finally:
+                self.conn.commit()            
 
     def copy_from(self, file_obj, table_name, columns):
         with closing(self.conn.cursor()) as cur:
@@ -149,8 +154,10 @@ class PostgresDbWriter(PostgresWriter):
 
         Returns None
         """
-        table_sql, serial_key_sql = super(PostgresDbWriter, self).write_table(table)
+        table_sql, serial_key_sql, table_comment_sql = super(PostgresDbWriter, self).write_table(table)
         for sql in serial_key_sql + table_sql:
+            self.execute(sql)
+        for sql in table_comment_sql:
             self.execute(sql)
 
     @status_logger

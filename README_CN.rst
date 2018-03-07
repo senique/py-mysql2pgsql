@@ -12,9 +12,11 @@
 
 2. 增加配置参数is_gpdb，设置对GPDB的特殊处理忽略（INDEXES(not PRIMARY KEY INDEXE), CONSTRAINTS, AND TRIGGERS）；
 
-3. 增加配置参数destination.postgres.sameschame，设置导入GPDB的schema指定为mysql.database；
+3. 增加配置参数destination.postgres.sameschame，设置导入GPDB的schema与mysql.database设置相同（需提前创建）；
 
 4. 增加配置参数mysql.getdbinfo，如果为true，则只读取MySQL的数据库统计信息，不执行数据迁移操作；
+
+5. 修改逻辑为单独处理comment，增加tty/exception/finally防止execute()异常导致后续脚本执行被终止；
 
 .. attention::
    README_CN.rst(本中文说明)非英文原版说明的翻译(详细请参考 `README.rst <https://github.com/philipsoutham/py-mysql2pgsql/blob/master/README.rst>`_)，只是使用简述。_
@@ -58,6 +60,7 @@ c .迁移前需要在新库（PostgreSQL）创建冒号指定的模式（schema�
 
 d .其他参数配置：
 
+  - destination.file: 指定输出的postgres脚本文件，如设置则只生成脚本，不执行数据迁移操作；
   - destination.postgres.sameschame: true-导入GPDB的schema指定为mysql.database；
   - mysql.getdbinfo: true-只读取MySQL的数据库统计信息，不执行数据迁移操作；
   - only_tables: 指定迁移的table（换行缩进列出表名），不指定则迁移全部；
@@ -77,7 +80,7 @@ d .其他参数配置：
     > cd D:\python\py-mysql2pgsql\bin
     > python py-mysql2pgsql -v -f mysql2pgsql.yml
 
-5. 打印数据库统计信息说明：
+5. 数据库统计信息说明（输出到文件：_database_sync_info.txt）：
 --------
 
 ::
