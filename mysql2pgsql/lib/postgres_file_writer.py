@@ -43,7 +43,7 @@ SET client_min_messages = warning;
         """
         truncate_sql, serial_key_sql = super(PostgresFileWriter, self).truncate(table)
         self.f.write("""
--- TRUNCATE %(table_name)s;
+\n-- TRUNCATE %(table_name)s;
 %(truncate_sql)s
 """ % {'table_name': table.name, 'truncate_sql': truncate_sql})
 
@@ -62,7 +62,7 @@ SET client_min_messages = warning;
 
         Returns None
         """
-        table_sql, serial_key_sql = super(PostgresFileWriter, self).write_table(table)
+        table_sql, serial_key_sql, table_comment_sql = super(PostgresFileWriter, self).write_table(table)
         if serial_key_sql:
             self.f.write("""
 %(serial_key_sql)s
@@ -71,11 +71,11 @@ SET client_min_messages = warning;
     })
 
         self.f.write("""
--- Table: %(table_name)s
+\n-- Table: %(table_name)s
 %(table_sql)s
 """ % {
     'table_name': table.name,
-    'table_sql': '\n'.join(table_sql),
+    'table_sql': '\n'.join(table_sql+table_comment_sql),
     })
 
     @status_logger
@@ -87,7 +87,9 @@ SET client_min_messages = warning;
 
         Returns None
         """
-        self.f.write('\n'.join(super(PostgresFileWriter, self).write_indexes(table)))
+        indexes_sql = super(PostgresFileWriter, self).write_indexes(table)
+        if indexes_sql:
+            self.f.write('\n-- INDEXes:\n'+'\n'.join(indexes_sql))
 
     @status_logger
     def write_constraints(self, table):
@@ -98,7 +100,9 @@ SET client_min_messages = warning;
 
         Returns None
         """
-        self.f.write('\n'.join(super(PostgresFileWriter, self).write_constraints(table)))
+        constraints_sql = super(PostgresFileWriter, self).write_constraints(table)
+        if constraints_sql:
+            self.f.write('\n\n-- CONSTRAINTs:\n'+'\n'.join(constraints_sql))
 
     @status_logger
     def write_triggers(self, table):
@@ -109,7 +113,9 @@ SET client_min_messages = warning;
 
         Returns None
         """
-        self.f.write('\n'.join(super(PostgresFileWriter, self).write_triggers(table)))
+        triggers_sql = super(PostgresFileWriter, self).write_triggers(table)
+        if triggers_sql:
+            self.f.write('\n-- TRIGGERs:\n'+'\n'.join(triggers_sql))
 
     @status_logger
     def write_contents(self, table, reader):

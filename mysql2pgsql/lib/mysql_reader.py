@@ -80,7 +80,8 @@ class MysqlReader(object):
     class Table(object):
         def __init__(self, reader, name):
             self.reader = reader
-            self._name = name
+            self._schema = reader.db.options['db']
+            self._name = name.lower()
             self._indexes = []
             self._foreign_keys = []
             self._triggers = []
@@ -137,7 +138,7 @@ class MysqlReader(object):
                 precision_match = re_column_precision.search(res[1])
                 length = length_match.group(1) if length_match else \
                     precision_match.group(1) if precision_match else None
-                name = res[0]
+                name = res[0].lower()
                 comment = res[8]
                 field_type = self._convert_type(res[1])
                 desc = {
@@ -189,7 +190,7 @@ class MysqlReader(object):
                 match_data = re_key_1.search(line)
                 if match_data:
                     index['name'] = match_data.group(1)
-                    index['column'] = match_data.group(2)
+                    index['column'] = match_data.group(2).lower()
                     index['ref_table'] = match_data.group(3)
                     index['ref_column'] = match_data.group(4)
                     self._foreign_keys.append(index)
@@ -197,14 +198,14 @@ class MysqlReader(object):
                 match_data = re_key_2.search(line)
                 if match_data:
                     index['name'] = match_data.group(1)
-                    index['columns'] = [re.search(r'`(\w+)`', col).group(1) for col in match_data.group(2).split(',')]
+                    index['columns'] = [re.search(r'`(\w+)`', col.lower()).group(1) for col in match_data.group(2).split(',')]
                     index['unique'] = 'UNIQUE' in line
                     self._indexes.append(index)
                     continue
                 match_data = re_key_3.search(line)
                 if match_data:
                     index['primary'] = True
-                    index['columns'] = [re.sub(r'\(\d+\)', '', col.replace('`', '')) for col in match_data.group(1).split(',')]
+                    index['columns'] = [re.sub(r'\(\d+\)', '', col.lower().replace('`', '')) for col in match_data.group(1).split(',')]
                     self._indexes.append(index)
                     continue
 
@@ -223,6 +224,10 @@ class MysqlReader(object):
                     trigger['statement'] = re.sub('`', '', trigger['statement'])
 
                     self._triggers.append(trigger)
+
+        @property
+        def schema(self):
+            return self._schema
 
         @property
         def name(self):

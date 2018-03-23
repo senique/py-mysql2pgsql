@@ -38,10 +38,10 @@ class Mysql2Pgsql(object):
         start_time = time.time()
         get_dbinfo = self.file_options['mysql']['getdbinfo']
         same_schame = postgres_options['sameschame']
-        for db in self.file_options['mysql']['database'].split(','):
-            self.file_options['mysql']['database'] = db
+        for database in self.file_options['mysql']['database'].split(','):
+            self.file_options['mysql']['database'] = database
             if same_schame:
-                self.file_options['destination']['postgres']['database'] = postgres_database+':'+db
+                self.file_options['destination']['postgres']['database'] = postgres_database+':'+database
 
             if get_dbinfo:
                 self.getMysqlReader()
@@ -49,12 +49,12 @@ class Mysql2Pgsql(object):
                 self.convert_db()
         end_time = time.time()
 
-        """DATABASE SATISTICS INFO OUTPUT INTO FILE"""
+        """DATABASE SATISTICS INFO OUTPUT INTO FILE [START]"""
         pound_sign = '#'*len(str(self.total_rows))
 
-        log_file_path = os.getcwd()+"\%s_database_sync_info.txt"%(self._get_time_str())
-        print('DATABASE SATISTICS INFO OUTPUT INTO: \n'+log_file_path)
-        logFile = self._get_file(log_file_path)
+        path_log_file = os.getcwd()+"\%s_database_sync_info.txt"%(self._get_time_str())
+        print('DATABASE SATISTICS INFO OUTPUT INTO: \n%s\n'%(path_log_file))
+        logFile = self._get_file(path_log_file)
 
         logFile.write(self.log_head%(pound_sign,str(self.total_rows),pound_sign))
         logFile.write("\n##Process Time:%s s.##"%(round(end_time-start_time, 2)))
@@ -62,19 +62,13 @@ class Mysql2Pgsql(object):
         if not get_dbinfo:
             logFile.write('\nINDEXES, CONSTRAINTS, AND TRIGGERS DETAIL:'+self.log_detail)
 
-        print("\nPOSTGRES EXECUTE ERROR LOG: \n"+self.execute_error_log)
-        """logFile.write("POSTGRES EXECUTE ERROR LOG: \n"+self.execute_error_log)
+            if self.execute_error_log:
+                print("\nPOSTGRES EXECUTE ERROR LOG: \n"+self.execute_error_log)
+            else:
+                print("POSTGRES EXECUTE ERROR LOG: OH YEAH~ NO ERRORS!")
 
-        POSTGRES EXECUTE ERROR LOG:
-        syntax error at or near "user"
-        LINE 1: COMMENT ON TABLE user is '鐢ㄦ埛';
-            
-          File "C:\Python27\lib\site-packages\py_mysql2pgsql-0.1.6-py2.7.egg\mysql2pgsql\mysql2pgsql.py", line 68, in convert
-            logFile.write("POSTGRES EXECUTE ERROR LOG: \n"+self.execute_error_log)
-          ...
-        UnicodeDecodeError: 'ascii' codec can't decode byte 0xe7 in position 94: ordinal not in range(128)
-        """
         logFile.close()
+        """DATABASE SATISTICS INFO OUTPUT INTO FILE [FINISH]"""
 
     def getMysqlReader(self):
         reader = MysqlReader(self.file_options['mysql'])
@@ -94,7 +88,13 @@ class Mysql2Pgsql(object):
         reader = self.getMysqlReader()
 
         if self.file_options['destination']['file']:
-            writer = PostgresFileWriter(self._get_file(self.file_options['destination']['file']), 
+            filename = self.file_options['destination']['file']
+            if filename.endswith('.sql'):
+                filename = filename[0:-4]+'-'+reader.db.options['db']+'.sql'
+            else:
+                filename += '-'+reader.db.options['db']+'.sql'
+
+            writer = PostgresFileWriter(self._get_file(filename), 
                                         self.run_options.verbose, 
                                         self.file_options,
                                         tz=self.file_options.get('timezone'))
@@ -105,8 +105,12 @@ class Mysql2Pgsql(object):
                                       tz=self.file_options.get('timezone'))
 
         Converter(reader, writer, self.file_options, self.run_options.verbose).convert()
-        self.execute_error_log += writer.execute_error_log
         self.log_detail += writer.log_detail
+        
+        if not self.file_options['destination']['file']:
+            self.execute_error_log += writer.execute_error_log
+        else:
+            print('SQLs SCRIPTS OUTPUT INTO: \n%s\%s\n'%(os.getcwd(),filename))
 
     def _get_file(self, file_path):
         return codecs.open(file_path, 'wb', 'utf-8')

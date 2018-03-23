@@ -157,6 +157,9 @@ class PostgresDbWriter(PostgresWriter):
         table_sql, serial_key_sql, table_comment_sql = super(PostgresDbWriter, self).write_table(table)
         for sql in serial_key_sql + table_sql:
             self.execute(sql)
+        """Execute comment with the error encoding(sometimes):
+        UnicodeDecodeError: 'ascii' codec can't decode byte 0xe7 in position 94: ordinal not in range(128)
+        """
         for sql in table_comment_sql:
             self.execute(sql)
 

@@ -14,11 +14,9 @@ class PostgresWriter(object):
     """
 
     def __init__(self, file_options, tz=False):
-        self.column_types = {}
-
         index_prefix = file_options.get("index_prefix")
-        self.log_detail = '\n'+file_options['destination']['postgres']['database']+'\n'
-        self.destination_file = file_options['destination']['file']
+        self.column_types = {}
+        self.log_detail = '\n%s\n'%(file_options['destination']['postgres']['database'])
         self.is_gpdb = file_options.get("is_gpdb")
         self.index_prefix = index_prefix if index_prefix else ''
         if tz:
@@ -28,8 +26,12 @@ class PostgresWriter(object):
             self.tz = None
             self.tz_offset = ''
 
+    """ 'UPPER_ID' is different with '"column"' in CREATE statement:
+        'UPPER_ID'   will create column with name 'upper_id'
+        '"UPPER_ID"' will create column with name 'UPPER_ID'
+    """
     def column_description(self, column):
-        return '"%s" %s' % (column['name'], self.column_type_info(column))
+        return '%s %s' % (column['name'], self.column_type_info(column))
 
     def column_type(self, column):
         hash_key = hash(frozenset(column.items()))
@@ -138,7 +140,7 @@ class PostgresWriter(object):
 
         """Refactor for GPDB."""
         if not self.is_gpdb and column.get('auto_increment', None):
-            return '%s DEFAULT nextval(\'"%s_%s_seq"\'::regclass) NOT NULL' % (
+            return '%s DEFAULT nextval(\'%s_%s_seq\'::regclass) NOT NULL' % (
                    column_type, column['table_name'], column['name'])
 
         return '%s%s%s' % (column_type, (default if not default == None else ''), null)
@@ -230,7 +232,7 @@ class PostgresWriter(object):
 
         if serial_key:
             serial_key_sql = "SELECT pg_catalog.setval(pg_get_serial_sequence(%(table_name)s, %(serial_key)s), %(maxval)s, true);" % {
-                'table_name': QuotedString('"%s"' % table.name).getquoted(),
+                'table_name': QuotedString('%s' % table.name).getquoted(),
                 'serial_key': QuotedString(serial_key).getquoted(),
                 'maxval': maxval}
 
@@ -247,12 +249,14 @@ class PostgresWriter(object):
             serial_key_sql.append('DROP SEQUENCE IF EXISTS "%s" CASCADE;' % serial_key_seq)
             serial_key_sql.append("""CREATE SEQUENCE "%s" INCREMENT BY 1
                                   NO MAXVALUE NO MINVALUE CACHE 1;""" % serial_key_seq)
-            serial_key_sql.append('SELECT pg_catalog.setval(\'"%s"\', %s, true);' % (serial_key_seq, maxval))
+            serial_key_sql.append('SELECT pg_catalog.setval(\'%s\', %s, true);' % (serial_key_seq, maxval))
 
-        table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
-        table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
-        if self.destination_file:
-            table_sql.extend(self.table_comments(table))
+        """ 'CREATE TABLE schema.table' is different with 'CREATE TABLE "schema.table"':
+            'CREATE TABLE schema1.table1'   will create table in schema1
+            'CREATE TABLE "schema1.table1"' will create 'schema1.table1' in selected or public schema
+        """
+        table_sql.append('DROP TABLE IF EXISTS %s CASCADE;' % table.name)
+        table_sql.append('CREATE TABLE %s (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
         table_comment_sql.extend(self.table_comments(table))
         return (table_sql, serial_key_sql, table_comment_sql)
 

@@ -18,6 +18,8 @@
 
 5. 修改逻辑为单独处理comment，增加tty/exception/finally防止execute()异常导致后续脚本执行被终止；
 
+6. 优化脚本文件输出(通过destination.file指定)：表名和字段去除双引号(不带双引号，会自动转换为小写)及转换为小写，脚本名称和格式；
+
 .. attention::
    README_CN.rst(本中文说明)非英文原版说明的翻译(详细请参考 `README.rst <https://github.com/philipsoutham/py-mysql2pgsql/blob/master/README.rst>`_)，只是使用简述。_
 
