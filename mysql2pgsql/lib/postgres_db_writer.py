@@ -110,7 +110,7 @@ class PostgresDbWriter(PostgresWriter):
                 else:
                     cur.execute(sql, args)
             except Exception as e:
-                self.execute_error_log += str(e)
+                self.execute_error_log += '######SCRIPTS:######\n '+sql+'\n######ERROR:######\n '+str(e)
             finally:
                 self.conn.commit()            
 

@@ -31,7 +31,7 @@ class PostgresWriter(object):
         '"UPPER_ID"' will create column with name 'UPPER_ID'
     """
     def column_description(self, column):
-        return '%s %s' % (column['name'], self.column_type_info(column))
+        return '"%s" %s' % (column['name'], self.column_type_info(column))
 
     def column_type(self, column):
         hash_key = hash(frozenset(column.items()))
@@ -57,6 +57,9 @@ class PostgresWriter(object):
             elif column['type'] == 'varchar':
                 default = ('%s::character varying' % default) if t(default) else None
                 return default, 'character varying(%s)' % column['length']
+            elif column['type'] == 'json':
+                 default = None
+                 return default, 'json'
             elif column['type'] == 'integer':
                 default = (" DEFAULT %s" % (column['default'] if t(column['default']) else 'NULL')) if t(default) else None
                 return default, 'integer'
@@ -140,7 +143,7 @@ class PostgresWriter(object):
 
         """Refactor for GPDB."""
         if not self.is_gpdb and column.get('auto_increment', None):
-            return '%s DEFAULT nextval(\'%s_%s_seq\'::regclass) NOT NULL' % (
+            return '%s DEFAULT nextval(\'"%s_%s_seq"\'::regclass) NOT NULL' % (
                    column_type, column['table_name'], column['name'])
 
         return '%s%s%s' % (column_type, (default if not default == None else ''), null)
@@ -153,10 +156,16 @@ class PostgresWriter(object):
     def table_comments(self, table):
         comments = []
         if table.comment:
-            comments.append('COMMENT ON TABLE %s is %s;' % (table.name, "'"+table.comment+"'"))
+            """comments.append('COMMENT ON TABLE %s is %s;' % (table.name, QuotedString(table.comment).getquoted()))
+               comments.append('COMMENT ON TABLE %s is %s;' % (table.name, "'"+table.comment+"'"))"""
+            table_comment = QuotedString(table.comment.encode('utf8')).getquoted()
+            comments.append('COMMENT ON TABLE {} is {};'.format(table.name, table_comment_res))
         for column in table.columns:
             if column['comment']:
-                comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], "'"+column['comment'].decode('utf8')+"'"))
+                """comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], QuotedString(column['comment']).getquoted()))
+                   comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], "'"+column['comment'].decode('utf8')+"'"))"""
+                comments.append('COMMENT ON COLUMN {}.{} is {};'.format(table.name, column['name'], QuotedString(column['comment']).getquoted()))
+
         return comments
 
     def process_row(self, table, row):
@@ -232,7 +241,7 @@ class PostgresWriter(object):
 
         if serial_key:
             serial_key_sql = "SELECT pg_catalog.setval(pg_get_serial_sequence(%(table_name)s, %(serial_key)s), %(maxval)s, true);" % {
-                'table_name': QuotedString('%s' % table.name).getquoted(),
+                'table_name': QuotedString('"%s"' % table.name).getquoted(),
                 'serial_key': QuotedString(serial_key).getquoted(),
                 'maxval': maxval}
 
@@ -249,14 +258,16 @@ class PostgresWriter(object):
             serial_key_sql.append('DROP SEQUENCE IF EXISTS "%s" CASCADE;' % serial_key_seq)
             serial_key_sql.append("""CREATE SEQUENCE "%s" INCREMENT BY 1
                                   NO MAXVALUE NO MINVALUE CACHE 1;""" % serial_key_seq)
-            serial_key_sql.append('SELECT pg_catalog.setval(\'%s\', %s, true);' % (serial_key_seq, maxval))
+            serial_key_sql.append('SELECT pg_catalog.setval(\'"%s"\', %s, true);' % (serial_key_seq, maxval))
 
         """ 'CREATE TABLE schema.table' is different with 'CREATE TABLE "schema.table"':
             'CREATE TABLE schema1.table1'   will create table in schema1
             'CREATE TABLE "schema1.table1"' will create 'schema1.table1' in selected or public schema
+
+            If use SQL Key Word in scripts, necessarily with double quate, like "user".
         """
-        table_sql.append('DROP TABLE IF EXISTS %s CASCADE;' % table.name)
-        table_sql.append('CREATE TABLE %s (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
+        table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
+        table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
         table_comment_sql.extend(self.table_comments(table))
         return (table_sql, serial_key_sql, table_comment_sql)
 
