@@ -159,7 +159,7 @@ class PostgresWriter(object):
             """comments.append('COMMENT ON TABLE %s is %s;' % (table.name, QuotedString(table.comment).getquoted()))
                comments.append('COMMENT ON TABLE %s is %s;' % (table.name, "'"+table.comment+"'"))"""
             table_comment = QuotedString(table.comment.encode('utf8')).getquoted()
-            comments.append('COMMENT ON TABLE {} is {};'.format(table.name, table_comment_res))
+            comments.append('COMMENT ON TABLE {} is {};'.format(table.name, table_comment))
         for column in table.columns:
             if column['comment']:
                 """comments.append('COMMENT ON COLUMN %s.%s is %s;' % (table.name, column['name'], QuotedString(column['comment']).getquoted()))
@@ -268,7 +268,8 @@ class PostgresWriter(object):
         """
         table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
         table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
-        table_comment_sql.extend(self.table_comments(table))
+        if not self.is_gpdb:
+            table_comment_sql.extend(self.table_comments(table))
         return (table_sql, serial_key_sql, table_comment_sql)
 
     def write_indexes(self, table):

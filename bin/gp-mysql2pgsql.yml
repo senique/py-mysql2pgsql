@@ -11,8 +11,9 @@ mysql:
  port: 3306
  socket: /tmp/mysql.sock
  username: user
- password: 
- database: test_db2,test_db
+ password: 456123
+# database: vm_auth,vm_campaign,vm_channel,vm_common,vm_crm,vm_cs,vm_device,vm_layout,vm_org,vm_report,vm_settle,vm_store,vm_user,vm_wares
+ database: vm_store
  compress: false
  getdbinfo: false
 destination:
@@ -20,10 +21,10 @@ destination:
  file:
  postgres:
   hostname: localhost
-  port: 5432
-  username: gpadmin
-  password: pivotal
-  database: mydb:test_new
+  port: 5435
+  username: postgres
+  password: 
+  database: bizdata:test_new
   sameschame: true
 
 # if only_tables is given, only the listed tables will be converted.  leave empty to convert all tables.
@@ -36,7 +37,7 @@ destination:
 # table4
 
 # if supress_data is true, only the schema definition will be exported/migrated, and not the data
-supress_data: false
+supress_data: true
 
 # if supress_ddl is true, only the data will be exported/imported, and not the schema
 supress_ddl: false
