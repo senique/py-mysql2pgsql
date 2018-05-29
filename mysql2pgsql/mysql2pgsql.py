@@ -71,7 +71,7 @@ class Mysql2Pgsql(object):
         """DATABASE SATISTICS INFO OUTPUT INTO FILE [FINISH]"""
 
     def getMysqlReader(self):
-        reader = MysqlReader(self.file_options['mysql'])
+        reader = MysqlReader(self)
 
         """"Deal data satistics info:"""
         satistics_rows_info = "\n"+self.file_options['mysql'].get('database')+":%s|TOTAL\n"

@@ -273,11 +273,12 @@ class MysqlReader(object):
                 'column_names': ', '. join(c['select'] for c in self.columns)}
 
     def __init__(self, options):
-        self.db = DB(options)
+        self.db = DB(options.file_options['mysql'])
+        self.exclude_tables = options.file_options['exclude_tables']
 
     @property
     def tables(self):
-        return (self.Table(self, t[0]) for t in self.db.list_tables())
+        return (self.Table(self, t[0]) for t in self.db.list_tables() if t[0] not in self.exclude_tables)
 
     def read(self, table):
         return self.db.query(table.query_for, large=True)
