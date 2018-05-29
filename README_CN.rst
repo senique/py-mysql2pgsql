@@ -16,7 +16,7 @@
 
 4. 增加配置参数mysql.getdbinfo，如果为true，则只读取MySQL的数据库统计信息，不执行数据迁移操作；
 
-5. 修改逻辑为单独处理comment，增加tty/exception/finally防止execute()异常导致后续脚本执行被终止；
+5. 修改逻辑为单独处理comment，增加try/exception/else防止execute()异常导致后续脚本执行被终止；
 
 6. 优化脚本文件输出(通过destination.file指定)：表名和字段去除双引号(不带双引号，会自动转换为小写)及转换为小写，脚本名称和格式；
 
@@ -65,8 +65,8 @@ d .其他参数配置：
   - destination.file: 指定输出的postgres脚本文件，如设置则只生成脚本，不执行数据迁移操作；
   - destination.postgres.sameschame: true-导入GPDB的schema指定为mysql.database；
   - mysql.getdbinfo: true-只读取MySQL的数据库统计信息，不执行数据迁移操作；
-  - only_tables: 指定迁移的table（换行缩进列出表名），不指定则迁移全部；
-  - exclude_tables:指定排除的table，不指定则不排除；
+  - only_tables: 指定迁移的table（必须换行减号加空格缩进列出表名），不指定则迁移全部；
+  - exclude_tables:指定排除的table(必须换行减号加空格缩进列出表名)，不指定则不排除；
   - supress_data: true-只迁移模式（包含表结构），默认false；
   - supress_ddl: true-只迁移数据，默认false；
   - timezone: true-转换时间，默认false；

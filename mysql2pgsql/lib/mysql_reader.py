@@ -65,14 +65,23 @@ class DB:
 
     def query_one(self, sql, args):
         with closing(self.cursor()) as cur:
-            cur.execute(sql, args)
-            return cur.fetchone()
+            try:
+                cur.execute(sql, args)
+            except:
+                print(sql)
+            else:
+                return cur.fetchone()
+
 
     def query_many(self, sql, args, large):
         with closing(self.cursor(MySQLdb.cursors.SSCursor if large else MySQLdb.cursors.Cursor)) as cur:
-            cur.execute(sql, args)
-            for row in cur:
-                yield row
+            try:
+                cur.execute(sql, args)
+            except:
+                print(sql)
+            else:
+                for row in cur:
+                    yield row
 
 
 class MysqlReader(object):

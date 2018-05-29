@@ -13,9 +13,9 @@ mysql:
  username: user
  password: 456123
 # database: vm_auth,vm_campaign,vm_channel,vm_common,vm_crm,vm_cs,vm_device,vm_layout,vm_org,vm_report,vm_settle,vm_store,vm_user,vm_wares
- database: vm_store
+ database: vm_channel
  compress: false
- getdbinfo: false
+ getdbinfo: true
 destination:
  # if file is given, output goes to file, else postgres
  file:
@@ -29,12 +29,12 @@ destination:
 
 # if only_tables is given, only the listed tables will be converted.  leave empty to convert all tables.
 #only_tables:
-# table1
-# table2
+#- table1
+#- table2
 # if exclude_tables is given, exclude the listed tables from the conversion.
 #exclude_tables:
-# table3
-# table4
+#- table3
+#- table4
 
 # if supress_data is true, only the schema definition will be exported/migrated, and not the data
 supress_data: true

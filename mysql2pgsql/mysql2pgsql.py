@@ -52,7 +52,7 @@ class Mysql2Pgsql(object):
         """DATABASE SATISTICS INFO OUTPUT INTO FILE [START]"""
         pound_sign = '#'*len(str(self.total_rows))
 
-        path_log_file = os.getcwd()+"\%s_database_sync_info.txt"%(self._get_time_str())
+        path_log_file = os.getcwd()+os.sep+"%s_database_sync_info.txt"%(self._get_time_str())
         print('DATABASE SATISTICS INFO OUTPUT INTO: \n%s\n'%(path_log_file))
         logFile = self._get_file(path_log_file)
 
@@ -62,10 +62,10 @@ class Mysql2Pgsql(object):
         if not get_dbinfo:
             logFile.write('\nINDEXES, CONSTRAINTS, AND TRIGGERS DETAIL:'+self.log_detail)
 
-            if self.execute_error_log:
-                print("\nPOSTGRES EXECUTE ERROR LOG: \n"+self.execute_error_log)
-            else:
-                print("POSTGRES EXECUTE ERROR LOG: OH YEAH~ NO ERRORS!")
+        if self.execute_error_log:
+            print("\nPOSTGRES EXECUTE ERROR LOG: \n"+self.execute_error_log)
+        else:
+            print("POSTGRES EXECUTE ERROR LOG: OH YEAH~ NO ERRORS!")
 
         logFile.close()
         """DATABASE SATISTICS INFO OUTPUT INTO FILE [FINISH]"""
