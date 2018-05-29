@@ -274,7 +274,7 @@ class MysqlReader(object):
 
     def __init__(self, options):
         self.db = DB(options.file_options['mysql'])
-        self.exclude_tables = options.file_options['exclude_tables']
+        self.exclude_tables = options.file_options.get('exclude_tables', [])
 
     @property
     def tables(self):
