@@ -275,10 +275,11 @@ class MysqlReader(object):
     def __init__(self, options):
         self.db = DB(options.file_options['mysql'])
         self.exclude_tables = options.file_options.get('exclude_tables', [])
+        self.only_tables = options.file_options.get('only_tables', [])
 
     @property
     def tables(self):
-        return (self.Table(self, t[0]) for t in self.db.list_tables() if t[0] not in self.exclude_tables)
+        return (self.Table(self, t[0]) for t in (t for t in self.db.list_tables() if t[0] not in self.exclude_tables) if not self.only_tables or t[0] in self.only_tables)
 
     def read(self, table):
         return self.db.query(table.query_for, large=True)
