@@ -60,15 +60,18 @@ b .由于数据库结构差异：MySQL（**database**->table）与PostgreSQL（*
 
 c .迁移前需要在新库（PostgreSQL）创建冒号指定的模式（schema），否则会报不存在；
 
-d .其他参数配置：
+d .读取MySQL表结构，当注释有乱码时，可能导致报错，需要将报错的表注释更新正确，然后再迁移数据；
+
+e .其他参数配置：
 
   - destination.file: 指定输出的postgres脚本文件，如设置则只生成脚本，不执行数据迁移操作；
   - destination.postgres.sameschame: true-导入GPDB的schema指定为mysql.database；
   - mysql.getdbinfo: true-只读取MySQL的数据库统计信息，不执行数据迁移操作；
   - only_tables: 指定迁移的table（必须换行减号加空格缩进列出表名），不指定则迁移全部；
   - exclude_tables:指定排除的table(必须换行减号加空格缩进列出表名)，不指定则不排除；
-  - supress_data: true-只迁移模式（包含表结构），默认false；
-  - supress_ddl: true-只迁移数据，默认false；
+  - supress_data: true-只迁移模式（先DROP，后CREATE，包含序列、表结构和索引），默认false；
+  - supress_ddl: true-只迁移数据（直接迁移数据，可能需要设置force_truncate=true，清空数据），默认false；
+  - force_truncate: true-快速清空表数据（配合supress_ddl=true，只迁移数据时使用），默认false；
   - timezone: true-转换时间，默认false；
   - index_prefix: 指定索引前缀，默认为空；
   - is_gpdb: true-GPDB的特殊性，需要忽略INDEXES(not PRIMARY KEY INDEXE), CONSTRAINTS, AND TRIGGERS，默认false；
