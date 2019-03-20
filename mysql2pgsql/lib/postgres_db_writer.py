@@ -110,9 +110,9 @@ class PostgresDbWriter(PostgresWriter):
                 else:
                     cur.execute(sql, args)
             except Exception as e:
-                self.execute_error_log += '######POSTGRES SCRIPTS:######\n '+sql+'\n######ERROR:######\n '+str(e)
-            else:
-                self.conn.commit()            
+                self.execute_error_log += '\n######POSTGRES SCRIPTS:######\n '+sql+'\n######ERROR:######\n '+str(e)
+                print('ERROR: '+str(e))
+            self.conn.commit()            
 
     def copy_from(self, file_obj, table_name, columns):
         with closing(self.conn.cursor()) as cur:

@@ -21,11 +21,14 @@
 6. 优化脚本文件输出(通过destination.file指定)：表名和字段去除双引号(不带双引号，会自动转换为小写)及转换为小写，脚本名称和格式；
 
 .. attention::
-   README_CN.rst(本中文说明)非英文原版说明的翻译(详细请参考 `README.rst <https://github.com/philipsoutham/py-mysql2pgsql/blob/master/README.rst>`_)，只是使用简述。_
+   README_CN.rst(本中文说明)非英文原版说明的翻译(详细请参考 README.rst)，只是使用简述。_
 
 
-Windows环境下使用说明：
-======================
+Linux环境下安装说明：见README.rst
+====================
+
+Windows环境下安装和使用说明：
+============================
 
 1. 安装Python 2.7 和如下依赖：
 -----------------------------
@@ -69,13 +72,24 @@ e .其他参数配置：
   - mysql.getdbinfo: true-只读取MySQL的数据库统计信息，不执行数据迁移操作；
   - only_tables: 指定迁移的table（必须换行减号加空格缩进列出表名），不指定则迁移全部；
   - exclude_tables:指定排除的table(必须换行减号加空格缩进列出表名)，不指定则不排除；
-  - supress_data: true-只迁移模式（先DROP，后CREATE，包含序列、表结构和索引），默认false；
-  - supress_ddl: true-只迁移数据（直接迁移数据，可能需要设置force_truncate=true，清空数据），默认false；
-  - force_truncate: true-快速清空表数据（配合supress_ddl=true，只迁移数据时使用），默认false；
+  - supress_data: true-只迁移模式（包含表结构），默认false；
+  - supress_ddl: true-只迁移数据，默认false；如果只全量同步数据，同时force_truncate也应该需要为true；
+  - force_truncate: true-迁移数据前，对目标表执行truncate操作，默认false；
   - timezone: true-转换时间，默认false；
   - index_prefix: 指定索引前缀，默认为空；
   - is_gpdb: true-GPDB的特殊性，需要忽略INDEXES(not PRIMARY KEY INDEXE), CONSTRAINTS, AND TRIGGERS，默认false；
 
+f .使用drop+data(即supress_data: false;supress_ddl: false;)，会删除引用的视图：
+
+  如不删除视图，则考虑使用其他方式处理【表结构变化】，然后使用truncate+only data同步数据；  
+
+g .使用truncate+only data(即force_truncate: true;supress_ddl: true;)，可能会报错(如下)：**事务提交逻辑更新(见 postgres_writer.py 函数 execute)**  
+
+  File "/usr/lib/python2.7/site-packages/py_mysql2pgsql-0.1.6-py2.7.egg/mysql2pgsql/lib/postgres_db_writer.py", line 216, in write_contents
+    self.copy_from(f, '"%s"' % table.name, ['"%s"' % c['name'] for c in table.columns])
+  File "/usr/lib/python2.7/site-packages/py_mysql2pgsql-0.1.6-py2.7.egg/mysql2pgsql/lib/postgres_db_writer.py", line 121, in copy_from
+    columns=columns
+  psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
 
 4. 执行命令迁移数据：
 --------------------
