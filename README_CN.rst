@@ -99,6 +99,73 @@ g .使用truncate+only data(即force_truncate: true;supress_ddl: true;)，可能
     > cd D:\python\py-mysql2pgsql\bin
     > python py-mysql2pgsql -v -f mysql2pgsql.yml
 
+同步方式说明（建议指定表，即：only_tables）：  
+
+- 基本配置(其他配置见后面说明)
+
+::
+
+    #基础配置
+    mysql:
+     ...
+     #指定需要同步的库(模式)，可以多个，用逗号分隔
+     database: vm_cs
+     compress: false
+     getdbinfo: false 
+    destination:
+     postgres:
+      ...
+      database: bizdata:test_new
+      sameschame: true
+    #指定需要同步的表
+    only_tables:
+    - table1
+    
+    # 其他配置
+    supress_data: false
+    supress_ddl: false
+    force_truncate: false
+    timezone: false
+    is_gpdb: true
+
+- 同步结构和数据(删表重建，加同步数据)
+
+::
+
+    # 其他配置同'基本配置'
+    supress_data: false
+    supress_ddl: false
+    force_truncate: false
+
+- 只同步结构(删表重建)
+
+::
+
+    # 其他配置同'基本配置'
+    supress_data: true
+    supress_ddl: false
+    force_truncate: false
+
+- 只同步数据(truncate+同步数据)
+
+  - 异常1：表结构（字段数量或者顺序）不一致， 需要重新同步表结构，或者手工处理表结构；
+
+::
+
+    # 其他配置同'基本配置'
+    supress_data: false
+    supress_ddl: true
+    force_truncate: true
+
+- 只统计源数据库的数据量
+
+::
+
+    # 其他配置同'基本配置'
+    mysql:
+     ...
+     getdbinfo: true 
+
 5. 数据库统计信息说明（输出到文件：_database_sync_info.txt）：
 --------
 
